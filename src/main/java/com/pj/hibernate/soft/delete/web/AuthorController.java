@@ -63,11 +63,5 @@ public class AuthorController {
     @GetMapping("/update/{email}")
     public Author update(@PathVariable String email) {
         return authorService.update(email);
-
-    }
-
-    @GetMapping("/test")
-    public void updateTransactional() {
-        authorService.updateTransactional();
     }
 }
