@@ -1,13 +1,20 @@
 package com.pj.hibernate.soft.delete.service;
 
 import com.pj.hibernate.soft.delete.domain.Author;
-import com.pj.hibernate.soft.delete.repository.EmProvider;
+import com.pj.hibernate.soft.delete.repository.AuthorRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Transactional
 public class AuthorServiceImpl implements AuthorService {
+    private final AuthorRepository authorRepository;
+
+    public AuthorServiceImpl(AuthorRepository authorRepository) {
+        this.authorRepository = authorRepository;
+    }
 
     /**
      * Find all Authors in the database.
@@ -19,12 +26,7 @@ public class AuthorServiceImpl implements AuthorService {
      */
     @Override
     public List<Author> findAll() {
-        var em = EmProvider.getEntityManager();
-        em.getTransaction().begin();
-        List<Author> authors = em.createQuery("SELECT a FROM Author a", Author.class).getResultList();
-        em.getTransaction().commit();
-        em.close();
-        return authors;
+        return authorRepository.findAll();
     }
 
     /**
@@ -37,17 +39,12 @@ public class AuthorServiceImpl implements AuthorService {
      */
     @Override
     public Author createNewAuthor() {
-        var em = EmProvider.getEntityManager();
-        em.getTransaction().begin();
-        Author author = new Author();
+        var author = new Author();
         author.setFirstName("John");
         author.setLastName("Doe");
         author.setEmail("jdoe2@example.com");
         author.setPhoneNumber("1234567890");
-        em.persist(author);
-        em.getTransaction().commit();
-        em.close();
-        return author;
+        return authorRepository.save(author);
     }
 
     /**
@@ -62,29 +59,20 @@ public class AuthorServiceImpl implements AuthorService {
      */
     @Override
     public Author update(String email) {
-        var em = EmProvider.getEntityManager();
-        em.getTransaction().begin();
-        Author author = em.createQuery("SELECT a FROM Author a WHERE a.email = :email", Author.class).setParameter("email", email).getResultStream().findFirst()
-                .orElse(null);
+        var author = authorRepository.findByEmail(email);
         if (author != null) {
             author.setFirstName("John");
             author.setLastName("Doe");
             author.setEmail("jdoe2@example.com");
             author.setPhoneNumber("1234567890");
-            em.merge(author);
+            author = authorRepository.saveAndFlush(author);
         }
-        em.getTransaction().commit();
-        em.close();
         return author;
     }
 
     @Override
     public void delete(String email) {
-        var em = EmProvider.getEntityManager();
-        em.getTransaction().begin();
-        em.createQuery("SELECT a FROM Author a WHERE a.email = :email", Author.class).setParameter("email", email).getResultStream().findFirst()
-                .ifPresent(em::remove);
-        em.getTransaction().commit();
-        em.close();
+        Author author = authorRepository.findByEmail(email);
+        authorRepository.delete(author);
     }
 }
