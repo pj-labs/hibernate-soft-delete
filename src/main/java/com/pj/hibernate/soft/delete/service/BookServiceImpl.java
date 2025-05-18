@@ -5,8 +5,8 @@ import com.pj.hibernate.soft.delete.domain.Book;
 import com.pj.hibernate.soft.delete.dto.BookInfo;
 import com.pj.hibernate.soft.delete.repository.AuthorRepository;
 import com.pj.hibernate.soft.delete.repository.BookRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -36,7 +36,7 @@ public class BookServiceImpl implements BookService {
      * @since 1.0.0
      */
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<BookInfo> findAll() {
         return bookRepository.findAllByIsbnIsNotNull();
     }

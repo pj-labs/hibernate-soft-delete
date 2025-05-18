@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SoftDelete;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.Objects;
 @Getter
 @Setter
 @RequiredArgsConstructor
+@SoftDelete(columnName = "deleted")
 public class Book {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
