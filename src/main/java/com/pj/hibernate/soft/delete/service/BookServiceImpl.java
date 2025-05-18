@@ -1,11 +1,8 @@
 package com.pj.hibernate.soft.delete.service;
 
-import com.pj.hibernate.soft.delete.domain.Author;
 import com.pj.hibernate.soft.delete.domain.Book;
 import com.pj.hibernate.soft.delete.dto.BookInfo;
-import com.pj.hibernate.soft.delete.repository.AuthorRepository;
-import com.pj.hibernate.soft.delete.repository.BookRepository;
-import jakarta.transaction.Transactional;
+import com.pj.hibernate.soft.delete.repository.EmProvider;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,16 +14,7 @@ import java.util.List;
  * @since 1.0.0
  */
 @Service
-@Transactional
 public class BookServiceImpl implements BookService {
-    private final BookRepository bookRepository;
-    private final AuthorRepository authorRepository;
-
-    public BookServiceImpl(BookRepository bookRepository, AuthorRepository authorRepository) {
-        this.bookRepository = bookRepository;
-        this.authorRepository = authorRepository;
-    }
-
     /**
      * Find all Books in the database.
      *
@@ -36,9 +24,13 @@ public class BookServiceImpl implements BookService {
      * @since 1.0.0
      */
     @Override
-    @Transactional
     public List<BookInfo> findAll() {
-        return bookRepository.findAllByIsbnIsNotNull();
+        var em = EmProvider.getEntityManager();
+        em.getTransaction().begin();
+        List<BookInfo> books = em.createQuery("SELECT new com.pj.hibernate.soft.delete.dto.BookInfo(b.id, b.title, b.isbn, b.edition, b.yearOfPublication," +
+                " b.publisher) FROM Book b WHERE b.isbn IS NOT NULL", BookInfo.class).getResultList();
+        em.close();
+        return books;
     }
 
     /**
@@ -51,13 +43,18 @@ public class BookServiceImpl implements BookService {
      */
     @Override
     public Book createNewBook() {
+        var em = EmProvider.getEntityManager();
+        em.getTransaction().begin();
         Book book = new Book();
         book.setTitle("Spring Boot 2 Recipes");
         book.setIsbn("978-1-4842-3925-4");
         book.setEdition(1);
         book.setYearOfPublication(2018);
         book.setPublisher("OReilly Media");
-        return bookRepository.save(book);
+        em.persist(book);
+        em.getTransaction().commit();
+        em.close();
+        return book;
     }
 
     /**
@@ -70,18 +67,29 @@ public class BookServiceImpl implements BookService {
      */
     @Override
     public Book updateBook(Long id) {
-        var book = bookRepository.getReferenceById(id);
-        book.setTitle("Spring Boot 3 Recipes");
-        book.setEdition(2);
-        book.setYearOfPublication(2019);
-        book.setPublisher("Personal Publication");
-        var author = authorRepository.save(new Author("John", "Doe", "jdoe@example.com", "123-456-7890"));
-        book.getAuthors().add(author);
-        return bookRepository.save(book);
+        var em = EmProvider.getEntityManager();
+        em.getTransaction().begin();
+        Book book = em.find(Book.class, id);
+        if (book != null) {
+            book.setTitle("Spring Boot 3 Recipes");
+            book.setEdition(2);
+            book.setYearOfPublication(2019);
+            book.setPublisher("Personal Publication");
+        }
+        em.getTransaction().commit();
+        em.close();
+        return book;
     }
 
     @Override
     public void deleteBook(Long id) {
-        bookRepository.deleteById(id);
+        var em = EmProvider.getEntityManager();
+        em.getTransaction().begin();
+        Book book = em.find(Book.class, id);
+        if (book != null) {
+            em.remove(book);
+        }
+        em.getTransaction().commit();
+        em.close();
     }
 }
